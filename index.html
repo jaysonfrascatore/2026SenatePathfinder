@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>2026 Senate Pathfinder</title>
+<style>
+body { font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif; margin:20px; background:#0f172a; color:#e5e7eb; }
+h1 { margin-bottom:12px; text-align:center; }
+.small { text-align:center; }
+.panel { background:#020617; border-radius:12px; padding:16px; margin-bottom:20px; box-shadow:0 0 0 1px #1e293b; }
+.grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap:16px; margin-bottom:20px; }
+.grid > div { text-align:center; }
+.small { font-size:12px; opacity:.8; }
+table { border-collapse: collapse; width:100%; }
+th, td { border:1px solid #1e293b; padding:6px; text-align:center; }
+th { background:#020617; position: sticky; top:0; }
+td.D { background:#60a5fa; color:#0f172a; }
+td.R { background:#f87171; color:#0f172a; }
+td.tie { background:#facc15; color:#0f172a; }
+.status { color:#e5e7eb; font-weight:700; }
+.status.D { background:#60a5fa; color:#0f172a; }
+.status.R { background:#f87171; color:#0f172a; }
+.status.tie { background:#facc15; color:#0f172a; }
+.scrollable { max-height:600px; overflow-y:auto; display:block; }
+.state-toggle { cursor:pointer; height:24px; border-radius:12px; display:flex; justify-content:center; align-items:center; margin-bottom:6px; color:#0f172a; font-weight:700; }
+.unlocked { background:#facc15; }
+.Dselected { background:#60a5fa; }
+.Rselected { background:#f87171; }
+.seat-count { font-size:16px; font-weight:700; margin-top:4px; text-align:center; }
+.paths { font-size:13px; opacity:.85; margin-top:2px; cursor:pointer; }
+.paths:hover { opacity:1; text-decoration:underline; }
+.paths.active { opacity:1; text-decoration:underline; font-weight:900; }
+.reset-btn { background:#a78bfa; color:#0f172a; border:none; padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:700; font-size:14px; margin-bottom:12px; display:block; margin-left:auto; margin-right:auto; }
+.reset-btn:hover { background:#c4b5fd; }
+</style>
+</head>
+<body>
+
+<h1>2026 Senate Pathfinder</h1>
+<p class="small">An interactive navigation tool for every possible 2026 outcome in the Senate.</p>
+<p class="small">Last Updated: January 14th, 2026</p>
+<button class="reset-btn" id="resetBtn">Reset All</button>
+
+<div class="panel grid">
+  <div>
+    <h2 style="color:#60a5fa;">Democratic Majority</h2>
+    <div id="demProb" style="font-size:28px; font-weight:700; color:#60a5fa;">—</div>
+    <div class="paths" id="demPaths">Paths to Victory: 0</div>
+    <div class="seat-count" id="demSeats">D Seats: 45</div>
+  </div>
+  <div>
+    <h2 style="color:#facc15;">50–50 Tie</h2>
+    <div id="tieProb" style="font-size:28px; font-weight:700; color:#facc15;">—</div>
+    <div class="paths" id="tiePaths">Paths to Tie: 0</div>
+  </div>
+  <div>
+    <h2 style="color:#f87171;">Republican Majority</h2>
+    <div id="gopProb" style="font-size:28px; font-weight:700; color:#f87171;">—</div>
+    <div class="paths" id="gopPaths">Paths to Victory: 0</div>
+    <div class="seat-count" id="gopSeats">R Seats: 48</div>
+  </div>
+</div>
+
+<div class="panel" id="stateFilters"></div>
+
+<div class="panel scrollable">
+<table>
+<thead>
+<tr id="header-row"></tr>
+</thead>
+<tbody id="results-body"></tbody>
+</table>
+</div>
+
+<script>
+const states = ['Alaska','Georgia','North Carolina','Ohio','Maine','Michigan','Texas'];
+const baseD = 45;
+const baseR = 48;
+let filters = Array(states.length).fill(null);
+let outcomeFilter = null;
+
+// ---------- HEADER ----------
+const headerRow = document.getElementById('header-row');
+
+// Add Scenario # column first
+const thScenario = document.createElement('th');
+thScenario.textContent = 'Scenario #';
+headerRow.appendChild(thScenario);
+
+states.forEach(s => {
+  const th = document.createElement('th');
+  th.textContent = s;
+  headerRow.appendChild(th);
+});
+
+['Dem Seats','GOP Seats','Majority Outcome'].forEach(t=>{
+  const th=document.createElement('th');
+  th.textContent=t;
+  headerRow.appendChild(th);
+});
+
+// ---------- STATE TOGGLES ----------
+const stateFiltersDiv = document.getElementById('stateFilters');
+const stateToggles = [];
+
+states.forEach((s,i)=>{
+  const div = document.createElement('div');
+  div.className='state-toggle unlocked';
+  div.textContent=s;
+  div.addEventListener('click', function() {
+    if(filters[i]===null){ 
+      filters[i]='D'; 
+      div.className='state-toggle Dselected'; 
+    }
+    else if(filters[i]==='D'){ 
+      filters[i]='R'; 
+      div.className='state-toggle Rselected'; 
+    }
+    else { 
+      filters[i]=null; 
+      div.className='state-toggle unlocked'; 
+    }
+    calculate();
+  });
+  stateFiltersDiv.appendChild(div);
+  stateToggles.push(div);
+});
+
+// ---------- RESET BUTTON ----------
+document.getElementById('resetBtn').addEventListener('click', function() {
+  filters = Array(states.length).fill(null);
+  outcomeFilter = null;
+  
+  stateToggles.forEach(div => {
+    div.className = 'state-toggle unlocked';
+  });
+  
+  document.getElementById('demPaths').classList.remove('active');
+  document.getElementById('gopPaths').classList.remove('active');
+  document.getElementById('tiePaths').classList.remove('active');
+  
+  calculate();
+});
+
+// ---------- OUTCOME FILTERS ----------
+document.getElementById('demPaths').addEventListener('click', function() {
+  if(outcomeFilter === 'D') {
+    outcomeFilter = null;
+    this.classList.remove('active');
+  } else {
+    outcomeFilter = 'D';
+    this.classList.add('active');
+    document.getElementById('gopPaths').classList.remove('active');
+    document.getElementById('tiePaths').classList.remove('active');
+  }
+  calculate();
+});
+
+document.getElementById('gopPaths').addEventListener('click', function() {
+  if(outcomeFilter === 'R') {
+    outcomeFilter = null;
+    this.classList.remove('active');
+  } else {
+    outcomeFilter = 'R';
+    this.classList.add('active');
+    document.getElementById('demPaths').classList.remove('active');
+    document.getElementById('tiePaths').classList.remove('active');
+  }
+  calculate();
+});
+
+document.getElementById('tiePaths').addEventListener('click', function() {
+  if(outcomeFilter === 'tie') {
+    outcomeFilter = null;
+    this.classList.remove('active');
+  } else {
+    outcomeFilter = 'tie';
+    this.classList.add('active');
+    document.getElementById('demPaths').classList.remove('active');
+    document.getElementById('gopPaths').classList.remove('active');
+  }
+  calculate();
+});
+
+// ---------- CALCULATION ----------
+function calculate(){
+  const body = document.getElementById('results-body');
+  body.innerHTML='';
+
+  let demPaths=0, gopPaths=0, tiePaths=0;
+  let displayedDemPaths=0, displayedGopPaths=0, displayedTiePaths=0;
+
+  const tossUps = [];
+  filters.forEach((f,i)=>{ if(f===null) tossUps.push(i); });
+
+  // Generate all 128 scenarios
+  const allScenarios = [];
+  for(let mask=0; mask<128; mask++){
+    let d=baseD, r=baseR;
+    const row = Array(states.length).fill('');
+
+    states.forEach((state, i) => {
+      const val = (mask & (1<<i)) ? 'D' : 'R';
+      row[i] = val;
+      if(val==='D') d++; else r++;
+    });
+
+    let text='', cls='';
+    if(d>=51){ text='Democratic Majority'; cls='D'; }
+    else if(r>=51){ text='Republican Majority'; cls='R'; }
+    else { text='Tie'; cls='tie'; }
+
+    allScenarios.push({
+      scenarioId: mask + 1,
+      row: row,
+      dSeats: d,
+      rSeats: r,
+      outcome: text,
+      outcomeClass: cls
+    });
+  }
+
+  // Now filter scenarios based on user selections
+  allScenarios.forEach(scenario => {
+    // Check if scenario matches state filters
+    let matchesFilters = true;
+    filters.forEach((f,i)=>{
+      if(f !== null && scenario.row[i] !== f) {
+        matchesFilters = false;
+      }
+    });
+
+    if(!matchesFilters) return;
+
+    // Count all paths
+    if(scenario.outcomeClass==='D') demPaths++;
+    else if(scenario.outcomeClass==='R') gopPaths++;
+    else tiePaths++;
+
+    // Apply outcome filter
+    if(outcomeFilter && scenario.outcomeClass !== outcomeFilter) return;
+
+    // Count displayed paths
+    if(scenario.outcomeClass==='D') displayedDemPaths++;
+    else if(scenario.outcomeClass==='R') displayedGopPaths++;
+    else displayedTiePaths++;
+
+    // Create table row
+    const tr=document.createElement('tr');
+
+    // Add scenario number first
+    const tdScenario=document.createElement('td');
+    tdScenario.textContent=scenario.scenarioId;
+    tdScenario.style.fontWeight='700';
+    tr.appendChild(tdScenario);
+
+    scenario.row.forEach(v=>{
+      const td=document.createElement('td');
+      td.className=v;
+      td.textContent=v;
+      tr.appendChild(td);
+    });
+
+    const tdD=document.createElement('td');
+    tdD.textContent=scenario.dSeats;
+    tdD.className='D';
+    tr.appendChild(tdD);
+
+    const tdR=document.createElement('td');
+    tdR.textContent=scenario.rSeats;
+    tdR.className='R';
+    tr.appendChild(tdR);
+
+    const td=document.createElement('td');
+    td.className='status ' + scenario.outcomeClass;
+    td.textContent=scenario.outcome;
+    tr.appendChild(td);
+
+    body.appendChild(tr);
+  });
+
+  const total = demPaths+gopPaths+tiePaths;
+  document.getElementById('demProb').textContent=((demPaths/total)*100).toFixed(1)+'%';
+  document.getElementById('gopProb').textContent=((gopPaths/total)*100).toFixed(1)+'%';
+  document.getElementById('tieProb').textContent=((tiePaths/total)*100).toFixed(1)+'%';
+
+  document.getElementById('demPaths').textContent='Paths to Victory: '+displayedDemPaths;
+  document.getElementById('gopPaths').textContent='Paths to Victory: '+displayedGopPaths;
+  document.getElementById('tiePaths').textContent='Paths to Tie: '+displayedTiePaths;
+
+  let dSeats=baseD, rSeats=baseR;
+  filters.forEach(f=>{ if(f==='D') dSeats++; if(f==='R') rSeats++; });
+  document.getElementById('demSeats').textContent='D Seats: '+dSeats;
+  document.getElementById('gopSeats').textContent='R Seats: '+rSeats;
+}
+
+calculate();
+</script>
+</body>
+</html>
