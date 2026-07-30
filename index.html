@@ -1812,9 +1812,15 @@ function calculate() {
     .filter(s => !outcomeFilter || s.outcome === outcomeFilter)
     .sort((a, b) => b.weight - a.weight);
 
+  // Renormalize against exactly what's being displayed (state locks AND the
+  // outcome filter, if any) — not the broader filteredTotal — so the shown
+  // percentages always sum to ~100% of what's on screen instead of being
+  // diluted by scenarios the outcome filter has already excluded.
+  const displayTotal = sorted.reduce((sum, s) => sum + s.weight, 0);
+
   sorted.forEach(s => {
     displayedRows++;
-    const sharePct = filteredTotal > 0 ? s.weight / filteredTotal * 100 : 0;
+    const sharePct = displayTotal > 0 ? s.weight / displayTotal * 100 : 0;
     const isEliminated = sharePct < ELIM_THRESHOLD * 100;
 
     const tr = document.createElement('tr');
