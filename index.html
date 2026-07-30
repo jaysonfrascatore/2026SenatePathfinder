@@ -2,298 +2,1973 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>2026 Senate Pathfinder</title>
+<title>2026 Senate Forecast</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
-body { font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif; margin:20px; background:#0f172a; color:#e5e7eb; }
-h1 { margin-bottom:12px; text-align:center; }
-.small { text-align:center; }
-.panel { background:#020617; border-radius:12px; padding:16px; margin-bottom:20px; box-shadow:0 0 0 1px #1e293b; }
-.grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap:16px; margin-bottom:20px; }
-.grid > div { text-align:center; }
-.small { font-size:12px; opacity:.8; }
-table { border-collapse: collapse; width:100%; }
-th, td { border:1px solid #1e293b; padding:6px; text-align:center; }
-th { background:#020617; position: sticky; top:0; }
-td.D { background:#60a5fa; color:#0f172a; }
-td.R { background:#f87171; color:#0f172a; }
-td.tie { background:#facc15; color:#0f172a; }
-.status { color:#e5e7eb; font-weight:700; }
-.status.D { background:#60a5fa; color:#0f172a; }
-.status.R { background:#f87171; color:#0f172a; }
-.status.tie { background:#facc15; color:#0f172a; }
-.scrollable { max-height:600px; overflow-y:auto; display:block; }
-.state-toggle { cursor:pointer; height:24px; border-radius:12px; display:flex; justify-content:center; align-items:center; margin-bottom:6px; color:#0f172a; font-weight:700; }
-.unlocked { background:#facc15; }
-.Dselected { background:#60a5fa; }
-.Rselected { background:#f87171; }
-.seat-count { font-size:16px; font-weight:700; margin-top:4px; text-align:center; }
-.paths { font-size:13px; opacity:.85; margin-top:2px; cursor:pointer; }
-.paths:hover { opacity:1; text-decoration:underline; }
-.paths.active { opacity:1; text-decoration:underline; font-weight:900; }
-.reset-btn { background:#a78bfa; color:#0f172a; border:none; padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:700; font-size:14px; margin-bottom:12px; display:block; margin-left:auto; margin-right:auto; }
-.reset-btn:hover { background:#c4b5fd; }
+/* ===== RESET & BASE ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --d: #3b82f6;
+  --d-light: #93c5fd;
+  --d-glow: rgba(59,130,246,0.3);
+  --r: #ef4444;
+  --r-light: #fca5a5;
+  --r-glow: rgba(239,68,68,0.3);
+  --y: #eab308;
+  --y-light: #fde047;
+  --y-glow: rgba(234,179,8,0.25);
+  --bg: #080c14;
+  --surface: #0d1424;
+  --surface2: #121a2e;
+  --surface3: #1a2540;
+  --border: rgba(255,255,255,0.07);
+  --text: #e2e8f0;
+  --muted: #64748b;
+  --font-display: 'Bebas Neue', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --font-body: 'IBM Plex Sans', sans-serif;
+}
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; overflow-x: hidden; }
+
+/* ===== ANIMATED BACKGROUND ===== */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: -1;
+  background: radial-gradient(ellipse 80% 60% at 20% 10%, rgba(59,130,246,0.06) 0%, transparent 60%),
+              radial-gradient(ellipse 60% 50% at 80% 90%, rgba(239,68,68,0.05) 0%, transparent 60%),
+              radial-gradient(ellipse 40% 40% at 50% 50%, rgba(234,179,8,0.02) 0%, transparent 70%);
+}
+
+/* ===== TICKER ===== */
+.ticker-bar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  position: sticky; top: 0; z-index: 100;
+}
+.ticker-label {
+  background: var(--y);
+  color: #000;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 0 14px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+.ticker-track {
+  display: flex;
+  gap: 0;
+  animation: ticker 40s linear infinite;
+  white-space: nowrap;
+}
+@keyframes ticker {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.ticker-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 28px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  border-right: 1px solid var(--border);
+  height: 40px;
+}
+.ticker-state { color: var(--muted); font-size: 11px; }
+.ticker-cand { font-weight: 600; }
+.ticker-poll { font-size: 13px; font-weight: 700; }
+.ticker-poll.D { color: var(--d-light); }
+.ticker-poll.R { color: var(--r-light); }
+.ticker-poll.TOSS { color: var(--y-light); }
+.ticker-sep { color: var(--muted); }
+.ticker-trend { font-size: 10px; }
+.ticker-trend.up { color: #4ade80; }
+.ticker-trend.down { color: #f87171; }
+
+/* ===== HEADER ===== */
+.header {
+  padding: 36px 32px 20px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+.header-left h1 {
+  font-family: var(--font-display);
+  font-size: clamp(36px, 6vw, 72px);
+  letter-spacing: 0.04em;
+  line-height: 1;
+  color: #fff;
+}
+.header-left h1 span.yr { color: var(--y); }
+.header-subtitle {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-top: 6px;
+}
+.header-right {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.8;
+}
+.live-dot {
+  display: inline-block;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #4ade80;
+  margin-right: 6px;
+  animation: pulse 2s infinite;
+  box-shadow: 0 0 6px #4ade80;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* ===== MAIN LAYOUT ===== */
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 20px;
+  padding: 20px 32px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+@media (max-width: 1100px) {
+  .main-grid { grid-template-columns: 1fr; }
+}
+
+/* ===== CARDS ===== */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+}
+.card-title {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ===== PROBABILITY METERS ===== */
+.prob-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 0;
+  margin-bottom: 20px;
+}
+.prob-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 16px;
+  position: relative;
+}
+.prob-col.dem { border-right: 1px solid var(--border); }
+.prob-col.gop { border-left: 1px solid var(--border); }
+.prob-party {
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  margin-bottom: 8px;
+}
+.prob-party.dem { color: var(--d-light); }
+.prob-party.gop { color: var(--r-light); }
+.prob-party.tie { color: var(--y-light); }
+.prob-pct {
+  font-family: var(--font-display);
+  font-size: 56px;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+.prob-pct.dem { color: var(--d); text-shadow: 0 0 30px var(--d-glow); }
+.prob-pct.gop { color: var(--r); text-shadow: 0 0 30px var(--r-glow); }
+.prob-pct.tie { color: var(--y); text-shadow: 0 0 30px var(--y-glow); }
+.prob-combined {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.prob-combined span { font-weight: 700; }
+.prob-combined span.dem { color: var(--d-light); }
+.prob-combined span.gop { color: var(--r-light); }
+.prob-combined span.tie { color: var(--y-light); }
+.prob-paths {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 8px;
+  cursor: pointer;
+  transition: color .2s;
+}
+.prob-paths:hover { color: var(--text); }
+.prob-paths.active { color: var(--y-light); font-weight: 700; }
+.prob-seats {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  margin-top: 8px;
+}
+.prob-seats.dem { color: var(--d); }
+.prob-seats.gop { color: var(--r); }
+
+/* ===== BAR RACE ===== */
+.barrace {
+  height: 36px;
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
+  margin-bottom: 4px;
+  border: 1px solid var(--border);
+}
+.barrace-d {
+  background: linear-gradient(90deg, #1d4ed8, var(--d));
+  transition: width .6s cubic-bezier(.4,0,.2,1);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  min-width: 0;
+}
+.barrace-t {
+  background: var(--y);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: #000;
+  min-width: 0;
+  overflow: hidden;
+}
+.barrace-r {
+  background: linear-gradient(90deg, var(--r), #991b1b);
+  transition: width .6s cubic-bezier(.4,0,.2,1);
+  display: flex;
+  align-items: center;
+  padding-left: 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  min-width: 0;
+}
+.barrace-labels {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 3px;
+}
+
+/* ===== US MAP ===== */
+#senate-map {
+  width: 100%;
+  height: auto;
+}
+.map-state {
+  stroke: #0d1424;
+  stroke-width: 1.5;
+  transition: all .25s;
+  cursor: default;
+}
+.map-state.contested {
+  stroke: #fff;
+  stroke-width: 2;
+  cursor: pointer;
+  filter: drop-shadow(0 0 6px rgba(255,255,255,0.15));
+}
+.map-state.contested:hover {
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 10px rgba(255,255,255,0.3));
+}
+.map-state.safe-D { fill: #1d4ed8; }
+.map-state.likely-D { fill: #3b82f6; }
+.map-state.lean-D { fill: #93c5fd; }
+.map-state.tossup { fill: #eab308; }
+.map-state.lean-R { fill: #fca5a5; }
+.map-state.likely-R { fill: #ef4444; }
+.map-state.safe-R { fill: #991b1b; }
+.map-state.no-race { fill: #1a2540; stroke: #0d1424; stroke-width: 1; cursor: default; filter: none; }
+.map-state.Dselected { fill: #2563eb; stroke: var(--d-light); stroke-width: 2.5; filter: drop-shadow(0 0 8px var(--d)); }
+.map-state.Rselected { fill: #dc2626; stroke: var(--r-light); stroke-width: 2.5; filter: drop-shadow(0 0 8px var(--r)); }
+
+.map-tooltip {
+  position: absolute;
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  pointer-events: none;
+  z-index: 200;
+  display: none;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  line-height: 1.8;
+}
+
+/* ===== STATE TOGGLES ===== */
+.state-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+.state-pill {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 100px;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: all .2s;
+  letter-spacing: 0.06em;
+}
+.state-pill.unlocked {
+  background: var(--surface3);
+  border-color: var(--y);
+  color: var(--y);
+}
+.state-pill.unlocked:hover { background: rgba(234,179,8,0.1); }
+.state-pill.Dselected {
+  background: var(--d-glow);
+  border-color: var(--d);
+  color: var(--d-light);
+  box-shadow: 0 0 12px var(--d-glow);
+}
+.state-pill.Rselected {
+  background: var(--r-glow);
+  border-color: var(--r);
+  color: var(--r-light);
+  box-shadow: 0 0 12px var(--r-glow);
+}
+.pill-hint {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  margin-bottom: 8px;
+  letter-spacing: 0.05em;
+}
+
+/* ===== CANDIDATES ===== */
+.candidate-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  transition: border-color .2s;
+}
+.candidate-card:hover { border-color: rgba(255,255,255,0.15); }
+.cand-header {
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+.cand-state-label {
+  font-family: var(--font-display);
+  font-size: 18px;
+  letter-spacing: 0.06em;
+}
+.cand-rating {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+.cand-rating.tossup { background: rgba(234,179,8,0.15); color: var(--y); border: 1px solid var(--y); }
+.cand-rating.lean-D { background: var(--d-glow); color: var(--d-light); border: 1px solid var(--d); }
+.cand-rating.lean-R { background: var(--r-glow); color: var(--r-light); border: 1px solid var(--r); }
+.cand-body { padding: 12px 14px; }
+.cand-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.cand-name {
+  font-size: 13px;
+  font-weight: 600;
+}
+.cand-name.D { color: var(--d-light); }
+.cand-name.R { color: var(--r-light); }
+.cand-pct {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 700;
+}
+.cand-pct.D { color: var(--d); }
+.cand-pct.R { color: var(--r); }
+.mini-bar {
+  height: 6px;
+  background: var(--surface3);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.mini-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width .6s;
+}
+.mini-bar-fill.D { background: linear-gradient(90deg, #1d4ed8, #60a5fa); }
+.mini-bar-fill.R { background: linear-gradient(90deg, var(--r), #fca5a5); }
+
+/* ===== RESULTS TABLE ===== */
+.table-wrap {
+  overflow-x: auto;
+  max-height: 520px;
+  overflow-y: auto;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.table-wrap::-webkit-scrollbar { width: 6px; height: 6px; }
+.table-wrap::-webkit-scrollbar-track { background: var(--surface); }
+.table-wrap::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 3px; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+thead th {
+  background: var(--surface2);
+  padding: 10px 12px;
+  text-align: center;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 10;
+  white-space: nowrap;
+}
+tbody tr {
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  transition: background .15s;
+}
+tbody tr:hover { background: var(--surface2); }
+tbody td {
+  padding: 8px 12px;
+  text-align: center;
+  font-weight: 600;
+}
+td.D { color: var(--d); }
+td.R { color: var(--r); }
+td.tie { color: var(--y); }
+td.status-D { color: #fff; background: rgba(59,130,246,0.15); }
+td.status-R { color: #fff; background: rgba(239,68,68,0.15); }
+td.status-tie { color: #000; background: var(--y); }
+td.num { color: var(--muted); font-size: 10px; }
+td.fcst-prob {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 52px;
+}
+tr.elim-row { opacity: 0.25; }
+
+
+/* ===== RESET ===== */
+.reset-btn {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 7px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all .2s;
+}
+.reset-btn:hover { border-color: var(--y); color: var(--y); }
+
+/* ===== METHOD LEGEND ===== */
+.method-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.method-box {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+}
+.method-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.method-val {
+  font-family: var(--font-display);
+  font-size: 28px;
+  letter-spacing: 0.04em;
+}
+.method-sub {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* ===== SECTION LABEL ===== */
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 16px 32px 8px;
+  border-top: 1px solid var(--border);
+  margin-top: 8px;
+}
+
+/* ===== DIVIDER ===== */
+.divider { height: 1px; background: var(--border); margin: 16px 0; }
+
+/* GLOW PIP */
+.pip {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 6px;
+}
+.pip.D { background: var(--d); box-shadow: 0 0 6px var(--d); }
+.pip.R { background: var(--r); box-shadow: 0 0 6px var(--r); }
+.pip.Y { background: var(--y); box-shadow: 0 0 6px var(--y); }
+
+/* ===== MODE SWITCHER ===== */
+.mode-btn {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .08em;
+  padding: 5px 11px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all .2s;
+}
+.mode-btn:hover { border-color: rgba(255,255,255,0.2); color: var(--text); }
+.active-mode-btn {
+  border-color: var(--y) !important;
+  background: rgba(234,179,8,0.1) !important;
+  color: var(--y-light) !important;
+}
+
+/* ===== FORECAST NUMBER LAYOUT ===== */
+.forecast-nums-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 8px;
+  margin: 6px 0 4px;
+}
+.forecast-num-col { text-align: center; }
+.forecast-num-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: .1em;
+  color: var(--muted);
+  margin-bottom: 1px;
+  text-transform: uppercase;
+}
+.forecast-num-label.poll-label { color: var(--y); }
+.forecast-arrow {
+  display: none;
+  align-items: center;
+  padding-bottom: 12px;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+}
+
+/* ===== DELTA ROW ===== */
+.delta-row {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-align: center;
+  min-height: 16px;
+  margin-bottom: 4px;
+}
+.delta-up { color: #4ade80; }
+.delta-down { color: #f87171; }
+.delta-flat { color: var(--muted); }
+
+/* ===== ENVIRONMENT SHIFT PANEL ===== */
+.env-panel { margin-bottom: 16px; }
+.env-state-select {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2364748b'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+.env-state-select:focus { outline: none; border-color: var(--y); }
+.env-result-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+.env-slider-wrap {
+  position: relative;
+  padding: 4px 0 20px;
+}
+.env-slider {
+  width: 100%;
+  -webkit-appearance: none;
+  height: 6px;
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+  background: linear-gradient(90deg, #1d4ed8, #3b82f6 25%, #eab308 50%, #ef4444 75%, #991b1b);
+}
+.env-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--y);
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(234,179,8,0.5);
+}
+.env-slider::-moz-range-thumb {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--y);
+  cursor: pointer;
+}
+.env-slider-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.env-result-display {
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 22px;
+  letter-spacing: 0.06em;
+  margin: 8px 0 4px;
+}
+.env-swing-badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  margin-bottom: 10px;
+}
+.env-impact-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 8px;
+}
+.env-impact-box {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  text-align: center;
+}
+.env-impact-state {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+.env-impact-margin {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+}
+.env-impact-prob {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+}
+.env-dist-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 5px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+.env-dist-label { width: 54px; color: var(--muted); flex-shrink: 0; }
+.env-dist-bar-wrap { flex: 1; background: var(--surface3); border-radius: 2px; height: 10px; overflow: hidden; }
+.env-dist-bar { height: 100%; border-radius: 2px; transition: width .4s; }
+.env-dist-pct { width: 36px; text-align: right; font-weight: 700; }
+.env-active-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: rgba(234,179,8,0.1);
+  border: 1px solid rgba(234,179,8,0.3);
+  color: var(--y-light);
+  margin-bottom: 10px;
+}
+.env-active-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--y); animation: pulse 1.5s infinite; }
 </style>
 </head>
 <body>
 
-<h1>2026 Senate Pathfinder</h1>
-<p class="small">An interactive navigation tool for every possible 2026 outcome in the Senate.</p>
-<p class="small">Last Updated: January 14th, 2026</p>
-<button class="reset-btn" id="resetBtn">Reset All</button>
-
-<div class="panel grid">
-  <div>
-    <h2 style="color:#60a5fa;">Democratic Majority</h2>
-    <div id="demProb" style="font-size:28px; font-weight:700; color:#60a5fa;">—</div>
-    <div class="paths" id="demPaths">Paths to Victory: 0</div>
-    <div class="seat-count" id="demSeats">D Seats: 45</div>
-  </div>
-  <div>
-    <h2 style="color:#facc15;">50–50 Tie</h2>
-    <div id="tieProb" style="font-size:28px; font-weight:700; color:#facc15;">—</div>
-    <div class="paths" id="tiePaths">Paths to Tie: 0</div>
-  </div>
-  <div>
-    <h2 style="color:#f87171;">Republican Majority</h2>
-    <div id="gopProb" style="font-size:28px; font-weight:700; color:#f87171;">—</div>
-    <div class="paths" id="gopPaths">Paths to Victory: 0</div>
-    <div class="seat-count" id="gopSeats">R Seats: 48</div>
+<!-- ===== TICKER ===== -->
+<div class="ticker-bar">
+  <div class="ticker-label">📡 POLL TRACKER</div>
+  <div style="overflow:hidden;flex:1;">
+    <div class="ticker-track" id="tickerTrack"></div>
   </div>
 </div>
 
-<div class="panel" id="stateFilters"></div>
-
-<div class="panel scrollable">
-<table>
-<thead>
-<tr id="header-row"></tr>
-</thead>
-<tbody id="results-body"></tbody>
-</table>
+<!-- ===== HEADER ===== -->
+<div class="header">
+  <div class="header-left">
+    <h1><span class="yr">2026</span> SENATE FORECAST</h1>
+    <div class="header-subtitle"><span class="live-dot"></span>Live Pathfinder · 8 Contested States · 256 Scenarios</div>
+  </div>
+  <div class="header-right">
+    Last Updated: Apr, 2026<br>
+    Current Senate: 53R · 47D<br>
+    Seats Needed: 51
+  </div>
 </div>
+
+<div class="main-grid">
+  <!-- LEFT COLUMN -->
+  <div>
+    <!-- PROBABILITY CARD -->
+    <div class="card" style="margin-bottom:20px;">
+      <!-- Card header with mode switcher -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div class="card-title" style="margin:0;">Majority Forecast</div>
+        <div style="display:flex;gap:4px;" id="modeSwitcher">
+          <button id="modeRaw" onclick="setDisplayMode('raw')" class="mode-btn active-mode-btn">RAW PATHS</button>
+          <button id="modeCombined" onclick="setDisplayMode('combined')" class="mode-btn">POLL FORECAST</button>
+          <button id="modeBoth" onclick="setDisplayMode('both')" class="mode-btn">BOTH</button>
+        </div>
+      </div>
+
+      <!-- Model explainer -->
+      <div id="modelExplainer" style="font-family:var(--font-mono);font-size:10px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 12px;margin-bottom:16px;line-height:1.7;">
+        <span id="explainerText">RAW PATHS treats all 256 scenarios as equally likely — each of the 7 contested seats is a coin flip with no polling applied.</span>
+      </div>
+
+      <!-- Big three columns -->
+      <div class="prob-grid">
+
+        <!-- D -->
+        <div class="prob-col dem">
+          <div class="prob-party dem">Democrats</div>
+          <div class="forecast-nums-row">
+            <div class="forecast-num-col">
+              <div class="forecast-num-label" id="labelRawD">RAW</div>
+              <div class="prob-pct dem" id="demProb">—</div>
+            </div>
+            <div class="forecast-arrow" id="arrowD">
+              <span id="arrowIconD">→</span>
+            </div>
+            <div class="forecast-num-col" id="combinedColD" style="display:none;">
+              <div class="forecast-num-label poll-label">FORECAST</div>
+              <div class="prob-pct" style="color:var(--d-light);" id="demCombined">—</div>
+            </div>
+          </div>
+          <div class="delta-row" id="demDeltaRow"></div>
+          <div class="prob-paths" id="demPaths">▶ 0 winning paths</div>
+          <div class="prob-seats dem" id="demSeats">45 seats</div>
+        </div>
+
+        <!-- Tie -->
+        <div class="prob-col" style="align-items:center;justify-content:center;padding:20px 8px;">
+          <div class="prob-party tie">Tie</div>
+          <div class="forecast-nums-row" style="justify-content:center;">
+            <div class="forecast-num-col">
+              <div class="forecast-num-label" id="labelRawT">RAW</div>
+              <div class="prob-pct tie" id="tieProb" style="font-size:36px;">—</div>
+            </div>
+            <div class="forecast-arrow" id="arrowT" style="font-size:13px;"><span id="arrowIconT">→</span></div>
+            <div class="forecast-num-col" id="combinedColT" style="display:none;">
+              <div class="forecast-num-label poll-label">FCST</div>
+              <div class="prob-pct" style="color:var(--y-light);font-size:36px;" id="tieCombined">—</div>
+            </div>
+          </div>
+          <div class="prob-paths" id="tiePaths">▶ 0 tie paths</div>
+        </div>
+
+        <!-- R -->
+        <div class="prob-col gop">
+          <div class="prob-party gop">Republicans</div>
+          <div class="forecast-nums-row">
+            <div class="forecast-num-col">
+              <div class="forecast-num-label" id="labelRawR">RAW</div>
+              <div class="prob-pct gop" id="gopProb">—</div>
+            </div>
+            <div class="forecast-arrow" id="arrowR"><span id="arrowIconR">→</span></div>
+            <div class="forecast-num-col" id="combinedColR" style="display:none;">
+              <div class="forecast-num-label poll-label">FORECAST</div>
+              <div class="prob-pct" style="color:var(--r-light);" id="gopCombined">—</div>
+            </div>
+          </div>
+          <div class="delta-row" id="gopDeltaRow"></div>
+          <div class="prob-paths" id="gopPaths">▶ 0 winning paths</div>
+          <div class="prob-seats gop" id="gopSeats">48 seats</div>
+        </div>
+      </div>
+
+      <!-- Bar races -->
+      <div style="margin-top:14px;">
+        <div style="font-family:var(--font-mono);font-size:9px;letter-spacing:.1em;color:var(--muted);margin-bottom:4px;" id="rawBarLabel">RAW PATHS — equal weight</div>
+        <div class="barrace" style="height:26px;">
+          <div class="barrace-d" id="barD" style="width:40%;font-size:11px;">D</div>
+          <div class="barrace-t" id="barT" style="width:4px;"></div>
+          <div class="barrace-r" id="barR" style="width:60%;font-size:11px;">R</div>
+        </div>
+        <div class="barrace-labels">
+          <span id="barLabelD">D 40.0%</span>
+          <span style="color:var(--muted);font-size:10px;">51 to win</span>
+          <span id="barLabelR">R 60.0%</span>
+        </div>
+
+        <div id="forecastBarWrap" style="display:none;margin-top:10px;">
+          <div style="font-family:var(--font-mono);font-size:9px;letter-spacing:.1em;color:var(--y-light);margin-bottom:4px;">POLL FORECAST — poll-adjusted weight</div>
+          <div class="barrace" style="height:26px;opacity:0.85;">
+            <div class="barrace-d" id="barFD" style="width:40%;font-size:11px;">D</div>
+            <div class="barrace-t" id="barFT" style="width:4px;"></div>
+            <div class="barrace-r" id="barFR" style="width:60%;font-size:11px;">R</div>
+          </div>
+          <div class="barrace-labels">
+            <span id="barFLabelD">D —</span>
+            <span style="color:var(--muted);font-size:10px;">poll-adjusted</span>
+            <span id="barFLabelR">R —</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAP CARD -->
+    <div class="card" style="margin-bottom:20px;position:relative;">
+      <div class="card-title">2026 Senate Map · Click contested states to lock</div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px;font-family:var(--font-mono);font-size:10px;color:var(--muted);align-items:center;">
+        <span><span style="display:inline-block;width:10px;height:10px;background:#1d4ed8;border-radius:2px;margin-right:4px;vertical-align:middle;"></span>Safe D</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#60a5fa;border-radius:2px;margin-right:4px;vertical-align:middle;"></span>Lean D</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#eab308;border-radius:2px;margin-right:4px;vertical-align:middle;"></span>Tossup</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#f87171;border-radius:2px;margin-right:4px;vertical-align:middle;"></span>Lean R</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#991b1b;border-radius:2px;margin-right:4px;vertical-align:middle;"></span>Safe R</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#1a2540;border-radius:2px;margin-right:4px;vertical-align:middle;"></span>No Race</span>
+        <span style="margin-left:auto;color:rgba(100,116,139,0.7);">Click contested states to lock outcome</span>
+      </div>
+      <div style="position:relative;" id="map-container">
+        <svg id="senate-map" viewBox="0 0 960 600" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;background:transparent;"></svg>
+        <div class="map-tooltip" id="mapTooltip"></div>
+      </div>
+    </div>
+
+    <!-- SCENARIO TABLE -->
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div class="card-title" style="margin:0;">All Scenarios <span id="scenarioCount" style="color:var(--y);">256</span></div>
+        <button class="reset-btn" id="resetBtn">↺ Reset All</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>AK</th><th>GA</th><th>NC</th><th>OH</th><th>ME</th><th>MI</th><th>TX<th>IA</th>
+              <th>D Seats</th><th>R Seats</th><th>Outcome</th><th>FCST %</th>
+            </tr>
+          </thead>
+          <tbody id="results-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT COLUMN -->
+  <div>
+    <!-- COMBINED METHOD EXPLAINER -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title">Forecast Methodology</div>
+      <div style="font-size:12px;line-height:1.8;color:var(--muted);">
+        <p style="margin-bottom:10px;"><span style="color:var(--text);font-weight:600;">Raw Paths</span> counts all 256 equal-weight scenarios — each contested seat is a pure 50/50 coin flip with no polling information applied.</p>
+        <p style="margin-bottom:10px;"><span style="color:var(--text);font-weight:600;">Poll Forecast</span> converts each state's poll margin to a win probability via a logistic curve (σ=8), then multiplies across all 8 states to get each scenario's true probability share. Scenarios are sorted by likelihood; those below 0.5% share are <span style="color:var(--muted);font-style:italic;">forecast-eliminated</span> and shown faded with ✕.</p>
+        <p><span style="color:var(--text);font-weight:600;">Env Shift</span> applies a uniform swing to every state's margin when a bellwether result is entered. Competitive states absorb the full swing; safe states absorb ~60%.</p>
+      </div>
+      <div class="divider"></div>
+      <div style="font-family:var(--font-mono);font-size:10px;color:var(--muted);line-height:1.9;">
+        <div>Use <span style="color:var(--y-light);font-weight:700;">RAW PATHS</span> to see pure math</div>
+        <div>Use <span style="color:var(--y-light);font-weight:700;">POLL FORECAST</span> for poll-weighted odds</div>
+        <div>Use <span style="color:var(--y-light);font-weight:700;">BOTH</span> to see the polling shift (Δ)</div>
+      </div>
+    </div>
+
+    <!-- ENVIRONMENT / UNIFORM SWING PANEL -->
+    <div class="card env-panel" id="envPanel">
+      <div class="card-title">National Environment Shift</div>
+
+      <div style="font-size:11px;color:var(--muted);line-height:1.7;margin-bottom:12px;">
+        Pick a bellwether state and enter its actual result. The uniform swing is applied to every other state's poll margin, updating probabilities across the board.
+      </div>
+
+      <!-- Bellwether selector -->
+      <div class="env-result-label">Bellwether State</div>
+      <select class="env-state-select" id="envStateSelect" onchange="updateEnvPanel()">
+        <option value="">— Select a state —</option>
+      </select>
+
+      <!-- Baseline info line -->
+      <div id="envBaseline" style="display:none;font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-bottom:10px;padding:6px 10px;background:var(--surface2);border-radius:4px;line-height:1.8;"></div>
+
+      <!-- Result slider -->
+      <div id="envSliderWrap" style="display:none;">
+        <div class="env-result-label">Actual Result <span id="envResultDisplay" style="color:var(--text);font-weight:700;"></span></div>
+        <div class="env-slider-wrap">
+          <input type="range" class="env-slider" id="envSlider" min="-20" max="20" value="0" step="1" oninput="updateEnvPanel()">
+          <div class="env-slider-ticks">
+            <span style="color:#3b82f6;">D+20</span>
+            <span style="color:#93c5fd;">D+10</span>
+            <span style="color:#eab308;">EVEN</span>
+            <span style="color:#fca5a5;">R+10</span>
+            <span style="color:#ef4444;">R+20</span>
+          </div>
+        </div>
+
+        <!-- Swing badge -->
+        <div style="text-align:center;margin-bottom:10px;">
+          <span class="env-swing-badge" id="envSwingBadge">± 0 swing</span>
+        </div>
+
+        <!-- Active indicator -->
+        <div id="envActiveBadge" style="display:none;" class="env-active-badge">
+          <span class="env-active-dot"></span>
+          <span>Environment shift active — poll weights adjusted</span>
+        </div>
+
+        <!-- Per-state impact grid -->
+        <div class="env-result-label" style="margin-top:4px;">Adjusted State Margins</div>
+        <div class="env-impact-grid" id="envImpactGrid"></div>
+
+        <!-- Outcome distribution -->
+        <div class="env-result-label" style="margin-top:12px;">Result Distribution for <span id="envBellwetherName" style="color:var(--text);">—</span></div>
+        <div id="envDistBars"></div>
+
+        <button onclick="clearEnvShift()" style="width:100%;margin-top:10px;font-family:var(--font-mono);font-size:10px;background:transparent;border:1px solid var(--border);color:var(--muted);padding:6px;border-radius:5px;cursor:pointer;letter-spacing:.07em;text-transform:uppercase;" onmouseover="this.style.borderColor='var(--y)';this.style.color='var(--y)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">✕ Clear Environment Shift</button>
+      </div>
+    </div>
+
+    <!-- STATE FILTERS -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title">Lock State Outcomes</div>
+      <div class="pill-hint">Click once → D · twice → R · three times → unlock</div>
+      <div class="state-pills" id="statePills"></div>
+    </div>
+
+    <!-- OUTCOME FILTER -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title">Filter Scenarios</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="state-pill unlocked" id="filterDem" style="border-color:var(--d);color:var(--d-light);" onclick="setOutcomeFilter('D')">D Majority</button>
+        <button class="state-pill unlocked" id="filterTie" style="border-color:var(--y);color:var(--y);" onclick="setOutcomeFilter('tie')">50–50 Tie</button>
+        <button class="state-pill unlocked" id="filterGop" style="border-color:var(--r);color:var(--r-light);" onclick="setOutcomeFilter('R')">R Majority</button>
+      </div>
+    </div>
+
+    <!-- CANDIDATES — Easy to edit section -->
+    <div class="card">
+      <div class="card-title">Candidates & Poll Averages</div>
+      <div id="candidateCards"></div>
+      <div style="font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
+        * Poll averages sourced from DDHQ and RCP. Edit <code style="color:var(--y);">CANDIDATE_DATA</code> in source to update.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TOOLTIP ===== -->
+<div class="map-tooltip" id="globalTooltip"></div>
 
 <script>
-const states = ['Alaska','Georgia','North Carolina','Ohio','Maine','Michigan','Texas'];
-const baseD = 45;
-const baseR = 48;
+/* =====================================================
+   CANDIDATE DATA — EASY TO EDIT
+   Fields: state, rating, dCandidate, dPct, rCandidate, rPct, trend
+   rating options: tossup | lean-D | lean-R | likely-D | likely-R
+   trend options: D | R | null
+   pollDate: last poll date string
+===================================================== */
+const CANDIDATE_DATA = [
+  {
+    state: 'Alaska',
+    abbr: 'AK',
+    rating: 'lean-D',
+    dCandidate: 'Mary Peltola (D)',
+    dPct: 50,
+    rCandidate: 'Dan Sullivan (R-inc)',
+    rPct: 46,
+    trend: 'D',
+    pollDate: 'Jul 2026'
+  },
+  {
+    state: 'Georgia',
+    abbr: 'GA',
+    rating: 'likely-D',
+    dCandidate: 'Jon Ossoff (D-inc)',
+    dPct: 51,
+    rCandidate: 'Mike Collins',
+    rPct: 43,
+    trend: 'D',
+    pollDate: 'Jan 2026'
+  },
+  {
+    state: 'North Carolina',
+    abbr: 'NC',
+    rating: 'likely-D',
+    dCandidate: 'Roy Cooper (D)',
+    dPct: 51,
+    rCandidate: 'Michael Whatley (R)',
+    rPct: 44,
+    trend: 'D',
+    pollDate: 'Jul 2026'
+  },
+  {
+    state: 'Ohio',
+    abbr: 'OH',
+    rating: 'lean-R',
+    dCandidate: 'Sherrod Brown (D)',
+    dPct: 47,
+    rCandidate: 'Jon Husted (R-inc)',
+    rPct: 46,
+    trend: 'R',
+    pollDate: 'Jul 2026'
+  },
+  {
+    state: 'Maine',
+    abbr: 'ME',
+    rating: 'tossup',
+    rCandidate: 'Susan Collins (R-inc)',
+    rPct: 42,
+    dCandidate: 'Troy Jackson',
+    dPct: 48,
+    trend: 'D',
+    pollDate: 'Jul 2026'
+  },
+  {
+    state: 'Michigan',
+    abbr: 'MI',
+    rating: 'lean-D',
+    dCandidate: 'TBD (D)',
+    dPct: 50,
+    rCandidate: 'TBD (R)',
+    rPct: 47,
+    trend: 'D',
+    pollDate: 'Jul 2026'
+  },
+  {
+    state: 'Texas',
+    abbr: 'TX',
+    rating: 'tossup',
+    dCandidate: 'James Talarico (D)',
+    dPct: 51,
+    rCandidate: 'Ken Paxton',
+    rPct: 48,
+    trend: 'D',
+    pollDate: 'Jul 2026'
+  },
+  {
+    state: 'Iowa',
+    abbr: 'IA',
+    rating: 'tossup',
+    dCandidate: 'Josh Turek (D)',
+    dPct: 50,
+    rCandidate: 'Ashley Hinson (R)',
+    rPct: 46,
+    trend: 'D',
+    pollDate: 'Jul 2026'
+  }
+];
+
+/* =====================================================
+   CORE STATE / CALC SETUP
+===================================================== */
+const states = ['Alaska','Georgia','North Carolina','Ohio','Maine','Michigan','Texas','Iowa'];
+const baseD = 45, baseR = 47;
 let filters = Array(states.length).fill(null);
 let outcomeFilter = null;
+let displayMode = 'raw'; // 'raw' | 'combined' | 'both'
 
-// ---------- HEADER ----------
-const headerRow = document.getElementById('header-row');
+const EXPLAINERS = {
+  raw: 'RAW PATHS counts all 256 scenarios with equal weight — each of the 7 contested seats is a pure 50/50 coin flip. No polling applied.',
+  combined: 'POLL FORECAST uses logistic win probabilities derived from poll margins. Scenarios are ranked by likelihood; faded rows (✕) are forecast-eliminated (<0.5% share).',
+  both: 'RAW PATHS (equal weight) vs POLL FORECAST (poll-weighted logistic). The Δ arrow shows how much polls shift the needle. Table sorted by forecast likelihood.'
+};
 
-// Add Scenario # column first
-const thScenario = document.createElement('th');
-thScenario.textContent = 'Scenario #';
-headerRow.appendChild(thScenario);
+function setDisplayMode(mode) {
+  displayMode = mode;
+  ['raw','combined','both'].forEach(m => {
+    document.getElementById('mode' + m.charAt(0).toUpperCase() + m.slice(1)).classList.remove('active-mode-btn');
+  });
+  document.getElementById('mode' + mode.charAt(0).toUpperCase() + mode.slice(1)).classList.add('active-mode-btn');
+  document.getElementById('explainerText').textContent = EXPLAINERS[mode];
+  applyDisplayMode();
+}
 
-states.forEach(s => {
-  const th = document.createElement('th');
-  th.textContent = s;
-  headerRow.appendChild(th);
-});
+function applyDisplayMode() {
+  const showRaw = displayMode === 'raw' || displayMode === 'both';
+  const showFcst = displayMode === 'combined' || displayMode === 'both';
+  const showBoth = displayMode === 'both';
 
-['Dem Seats','GOP Seats','Majority Outcome'].forEach(t=>{
-  const th=document.createElement('th');
-  th.textContent=t;
-  headerRow.appendChild(th);
-});
+  // Raw labels — hide in combined-only mode
+  ['labelRawD','labelRawR','labelRawT'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.opacity = showRaw ? '1' : '0.3';
+  });
 
-// ---------- STATE TOGGLES ----------
-const stateFiltersDiv = document.getElementById('stateFilters');
-const stateToggles = [];
-
-states.forEach((s,i)=>{
-  const div = document.createElement('div');
-  div.className='state-toggle unlocked';
-  div.textContent=s;
-  div.addEventListener('click', function() {
-    if(filters[i]===null){ 
-      filters[i]='D'; 
-      div.className='state-toggle Dselected'; 
+  // Raw big numbers dim in combined mode
+  ['demProb','gopProb','tieProb'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.style.opacity = showRaw ? '1' : '0.25';
+      el.style.fontSize = showBoth ? '32px' : '44px';
     }
-    else if(filters[i]==='D'){ 
-      filters[i]='R'; 
-      div.className='state-toggle Rselected'; 
-    }
-    else { 
-      filters[i]=null; 
-      div.className='state-toggle unlocked'; 
-    }
+  });
+  document.getElementById('tieProb').style.fontSize = showBoth ? '26px' : '36px';
+
+  // Forecast columns
+  ['combinedColD','combinedColR','combinedColT'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = showFcst ? 'block' : 'none';
+  });
+
+  // Arrows
+  ['arrowD','arrowR','arrowT'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = showBoth ? 'flex' : 'none';
+  });
+
+  // Delta rows
+  ['demDeltaRow','gopDeltaRow'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = showBoth ? 'block' : 'none';
+  });
+
+  // Raw bar label / forecast bar
+  document.getElementById('rawBarLabel').style.display = showRaw ? 'block' : 'none';
+  document.getElementById('barD').closest('.barrace').style.display = showRaw ? 'flex' : 'none';
+  document.getElementById('barD').closest('.barrace').nextElementSibling.style.display = showRaw ? 'flex' : 'none';
+  document.getElementById('forecastBarWrap').style.display = showFcst ? 'block' : 'none';
+}
+
+// ── Probability engine ──────────────────────────────────────────────────────
+// All forecast math flows through marginToProb so the env shift and base polls
+// are on the same logistic scale — no more simple-ratio fallback.
+
+let envShift = 0;        // uniform swing in margin pts (+D / -R)
+let envShiftActive = false;
+
+// Sigma controls steepness: margin of ±8 → ~73% win prob (realistic for Senate)
+const SIGMA = 7;
+function marginToProb(margin) {
+  return 1 / (1 + Math.exp(-margin / SIGMA));
+}
+
+// Per-state D-win probability, always on the logistic curve.
+// With env shift: competitive states absorb more swing than safe ones.
+function getPollWeight(stateIdx) {
+  const c = CANDIDATE_DATA[stateIdx];
+  if (!c) return 0.5;
+  const baseMargin = c.dPct - c.rPct;
+  if (!envShiftActive || envShift === 0) {
+    return Math.min(0.97, Math.max(0.03, marginToProb(baseMargin)));
+  }
+  // Correlation: tossup states fully absorb the swing; safe states absorb 60%
+  const absBase = Math.abs(baseMargin);
+  const correlation = 1.0 - 0.4 * Math.min(absBase / 15, 1); // 1.0 → 0.60
+  const adjustedMargin = baseMargin + envShift * correlation;
+  return Math.min(0.97, Math.max(0.03, marginToProb(adjustedMargin)));
+}
+
+// Scenario probability = product of each state's individual win/loss prob
+function scenarioProb(row) {
+  let p = 1;
+  row.forEach((v, i) => { p *= (v === 'D') ? getPollWeight(i) : (1 - getPollWeight(i)); });
+  return p;
+}
+
+// Elimination threshold: scenarios below this share of total weight are
+// considered "forecast-eliminated" and shown differently in the table.
+const ELIM_THRESHOLD = 0.005; // <0.5% of total poll weight = eliminated
+
+/* =====================================================
+   ENVIRONMENT SHIFT PANEL
+===================================================== */
+function populateEnvSelect() {
+  const sel = document.getElementById('envStateSelect');
+  states.forEach((s, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    const c = CANDIDATE_DATA[i];
+    const margin = c.dPct - c.rPct;
+    const marginStr = margin > 0 ? `D+${margin}` : margin < 0 ? `R+${Math.abs(margin)}` : 'EVEN';
+    opt.textContent = `${s} (${marginStr} baseline)`;
+    sel.appendChild(opt);
+  });
+}
+
+function clearEnvShift() {
+  envShift = 0;
+  envShiftActive = false;
+  document.getElementById('envSlider').value = 0;
+  document.getElementById('envStateSelect').value = '';
+  document.getElementById('envSliderWrap').style.display = 'none';
+  document.getElementById('envBaseline').style.display = 'none';
+  document.getElementById('envActiveBadge').style.display = 'none';
+  calculate();
+}
+
+function updateEnvPanel() {
+  const sel = document.getElementById('envStateSelect');
+  const idx = parseInt(sel.value);
+  // Negate: slider right = higher raw value, but labels show R on right, so flip
+  const sliderVal = -parseInt(document.getElementById('envSlider').value);
+
+  if (isNaN(idx)) {
+    document.getElementById('envSliderWrap').style.display = 'none';
+    document.getElementById('envBaseline').style.display = 'none';
+    envShift = 0; envShiftActive = false;
     calculate();
+    return;
+  }
+
+  const c = CANDIDATE_DATA[idx];
+  const baseMargin = c.dPct - c.rPct;
+  const baseStr = baseMargin > 0 ? `D+${baseMargin}` : baseMargin < 0 ? `R+${Math.abs(baseMargin)}` : 'EVEN';
+
+  // Show baseline
+  const baseEl = document.getElementById('envBaseline');
+  baseEl.style.display = 'block';
+  baseEl.innerHTML = `<span style="color:var(--text);font-weight:600;">${c.state}</span> · Polling baseline: <span style="${baseMargin>=0?'color:var(--d-light)':'color:var(--r-light)'}">${baseStr}</span><br>
+    <span style="color:var(--muted);">${c.dCandidate.split('(')[0].trim()} ${c.dPct}% · ${c.rCandidate.split('(')[0].trim()} ${c.rPct}%</span>`;
+
+  document.getElementById('envSliderWrap').style.display = 'block';
+  document.getElementById('envBellwetherName').textContent = c.state;
+
+  // Compute swing = actual result minus baseline
+  const actualMargin = sliderVal; // slider is D-R margin of actual result
+  const swing = actualMargin - baseMargin;
+  envShift = swing;
+  envShiftActive = swing !== 0;
+
+  // Update result display
+  const resultStr = sliderVal > 0 ? `D+${sliderVal}` : sliderVal < 0 ? `R+${Math.abs(sliderVal)}` : 'EVEN';
+  document.getElementById('envResultDisplay').textContent = resultStr;
+  document.getElementById('envResultDisplay').style.color = sliderVal > 0 ? 'var(--d-light)' : sliderVal < 0 ? 'var(--r-light)' : 'var(--y)';
+
+  // Swing badge
+  const swingEl = document.getElementById('envSwingBadge');
+  const swingStr = swing > 0 ? `+${swing}D swing` : swing < 0 ? `+${Math.abs(swing)}R swing` : 'No swing (baseline)';
+  swingEl.textContent = swingStr;
+  swingEl.style.background = swing > 0 ? 'rgba(59,130,246,0.15)' : swing < 0 ? 'rgba(239,68,68,0.15)' : 'rgba(234,179,8,0.1)';
+  swingEl.style.color = swing > 0 ? 'var(--d-light)' : swing < 0 ? 'var(--r-light)' : 'var(--y)';
+  swingEl.style.border = `1px solid ${swing > 0 ? 'var(--d)' : swing < 0 ? 'var(--r)' : 'var(--y)'}`;
+
+  document.getElementById('envActiveBadge').style.display = envShiftActive ? 'flex' : 'none';
+
+  // Per-state adjusted margins
+  const grid = document.getElementById('envImpactGrid');
+  grid.innerHTML = '';
+  states.forEach((s, i) => {
+    if (i === idx) return; // skip bellwether itself
+    const sc = CANDIDATE_DATA[i];
+    const bm = sc.dPct - sc.rPct;
+    const competitiveness = 1 - Math.min(Math.abs(bm) / 20, 1);
+    const correlation = 0.7 + 0.3 * competitiveness;
+    const adjMargin = bm + swing * correlation;
+    const adjProb = Math.min(97, Math.max(3, Math.round(marginToProb(adjMargin) * 100)));
+    const adjStr = adjMargin > 0 ? `D+${adjMargin.toFixed(1)}` : adjMargin < 0 ? `R+${Math.abs(adjMargin).toFixed(1)}` : 'EVEN';
+    const bStr = bm > 0 ? `D+${bm}` : bm < 0 ? `R+${Math.abs(bm)}` : 'EVEN';
+    const changed = swing !== 0;
+    const box = document.createElement('div');
+    box.className = 'env-impact-box';
+    box.style.borderColor = changed ? (adjMargin >= 0 ? 'rgba(59,130,246,0.3)' : 'rgba(239,68,68,0.3)') : 'var(--border)';
+    box.innerHTML = `<div class="env-impact-state">${sc.abbr}</div>
+      <div class="env-impact-margin" style="color:${adjMargin>=0?'var(--d-light)':'var(--r-light)'}">${adjStr}</div>
+      <div class="env-impact-prob" style="color:${adjMargin>=0?'var(--d)':'var(--r)'}">D: ${adjProb}%</div>
+      ${changed ? `<div style="font-family:var(--font-mono);font-size:9px;color:var(--muted);">was ${bStr}</div>` : ''}`;
+    grid.appendChild(box);
   });
-  stateFiltersDiv.appendChild(div);
-  stateToggles.push(div);
-});
 
-// ---------- RESET BUTTON ----------
-document.getElementById('resetBtn').addEventListener('click', function() {
-  filters = Array(states.length).fill(null);
-  outcomeFilter = null;
-  
-  stateToggles.forEach(div => {
-    div.className = 'state-toggle unlocked';
+  // Outcome distribution bars for bellwether state
+  const BUCKETS = [
+    { label: 'D+10+',  min: 10,   max: Infinity, color: '#1d4ed8' },
+    { label: 'D+5–9',  min: 5,    max: 9.9,      color: '#3b82f6' },
+    { label: 'D+1–4',  min: 1,    max: 4.9,      color: '#93c5fd' },
+    { label: 'EVEN',   min: -0.4, max: 0.4,       color: '#eab308' },
+    { label: 'R+1–4',  min: -4.9, max: -1,        color: '#fca5a5' },
+    { label: 'R+5–9',  min: -9.9, max: -5,        color: '#ef4444' },
+    { label: 'R+10+',  min: -Infinity, max: -10,  color: '#991b1b' },
+  ];
+
+  // Use normal distribution around adjustedMargin with std dev ~5
+  const mu = actualMargin;
+  const sigma = 5;
+  function normPDF(x) { return Math.exp(-0.5 * ((x - mu) / sigma) ** 2) / (sigma * Math.sqrt(2 * Math.PI)); }
+
+  // Numerical integration over buckets
+  const step = 0.5;
+  let bucketWeights = BUCKETS.map(b => {
+    let sum = 0;
+    const lo = isFinite(b.min) ? b.min : -30;
+    const hi = isFinite(b.max) ? b.max : 30;
+    for (let x = lo; x <= hi; x += step) sum += normPDF(x) * step;
+    return sum;
   });
-  
-  document.getElementById('demPaths').classList.remove('active');
-  document.getElementById('gopPaths').classList.remove('active');
-  document.getElementById('tiePaths').classList.remove('active');
-  
-  calculate();
-});
+  const total = bucketWeights.reduce((a, b) => a + b, 0);
+  bucketWeights = bucketWeights.map(w => w / total);
 
-// ---------- OUTCOME FILTERS ----------
-document.getElementById('demPaths').addEventListener('click', function() {
-  if(outcomeFilter === 'D') {
+  const distEl = document.getElementById('envDistBars');
+  distEl.innerHTML = '';
+  BUCKETS.forEach((b, i) => {
+    const pct = (bucketWeights[i] * 100).toFixed(1);
+    const isActual = (actualMargin >= (isFinite(b.min) ? b.min : -100)) && (actualMargin <= (isFinite(b.max) ? b.max : 100));
+    const row = document.createElement('div');
+    row.className = 'env-dist-row';
+    row.innerHTML = `<div class="env-dist-label" style="${isActual?'color:var(--text);font-weight:700;':''}">${b.label}</div>
+      <div class="env-dist-bar-wrap">
+        <div class="env-dist-bar" style="width:${Math.min(100,pct*1.5)}%;background:${b.color};opacity:${isActual?1:0.55};"></div>
+      </div>
+      <div class="env-dist-pct" style="color:${b.color};${isActual?'font-weight:800;':''}">${pct}%</div>`;
+    distEl.appendChild(row);
+  });
+
+  calculate();
+}
+
+/* =====================================================
+   TICKER
+===================================================== */
+function buildTicker() {
+  const track = document.getElementById('tickerTrack');
+  const items = [...CANDIDATE_DATA, ...CANDIDATE_DATA]; // double for seamless loop
+  let html = '';
+  items.forEach(c => {
+    const lead = c.dPct > c.rPct ? 'D' : c.rPct > c.dPct ? 'R' : 'TOSS';
+    const leadPct = Math.max(c.dPct, c.rPct);
+    const margin = Math.abs(c.dPct - c.rPct);
+    const trendArrow = c.trend === 'D' ? '<span class="ticker-trend up">▲D</span>' : c.trend === 'R' ? '<span class="ticker-trend down">▼R</span>' : '<span class="ticker-trend" style="color:var(--y)">●</span>';
+    html += `<div class="ticker-item">
+      <span class="ticker-state">${c.state}</span>
+      <span class="ticker-cand">${c.dCandidate.split('(')[0].trim()}</span>
+      <span class="ticker-poll D">${c.dPct}%</span>
+      <span class="ticker-sep">vs</span>
+      <span class="ticker-poll R">${c.rPct}%</span>
+      <span class="ticker-cand">${c.rCandidate.split('(')[0].trim()}</span>
+      <span class="ticker-poll ${lead}">+${margin} ${lead}</span>
+      ${trendArrow}
+      <span style="font-size:10px;color:var(--muted);">${c.pollDate}</span>
+    </div>`;
+  });
+  track.innerHTML = html;
+}
+
+/* =====================================================
+   CANDIDATE CARDS
+===================================================== */
+function buildCandidateCards() {
+  const container = document.getElementById('candidateCards');
+  let html = '';
+  CANDIDATE_DATA.forEach(c => {
+    const total = c.dPct + c.rPct;
+    const dW = (c.dPct / total * 100).toFixed(0);
+    const rW = (c.rPct / total * 100).toFixed(0);
+    const ratingLabel = {
+      'tossup': 'Tossup',
+      'lean-D': 'Lean D',
+      'lean-R': 'Lean R',
+      'likely-D': 'Likely D',
+      'likely-R': 'Likely R'
+    }[c.rating] || c.rating;
+    html += `<div class="candidate-card">
+      <div class="cand-header">
+        <span class="cand-state-label">${c.state}</span>
+        <span class="cand-rating ${c.rating}">${ratingLabel}</span>
+      </div>
+      <div class="cand-body">
+        <div class="cand-row">
+          <span class="cand-name D">${c.dCandidate}</span>
+          <span class="cand-pct D">${c.dPct}%</span>
+        </div>
+        <div class="mini-bar"><div class="mini-bar-fill D" style="width:${dW}%"></div></div>
+        <div class="cand-row">
+          <span class="cand-name R">${c.rCandidate}</span>
+          <span class="cand-pct R">${c.rPct}%</span>
+        </div>
+        <div class="mini-bar"><div class="mini-bar-fill R" style="width:${rW}%"></div></div>
+      </div>
+    </div>`;
+  });
+  container.innerHTML = html;
+}
+
+/* =====================================================
+   STATE PILLS
+===================================================== */
+const pillEls = [];
+function buildPills() {
+  const container = document.getElementById('statePills');
+  states.forEach((s, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'state-pill unlocked';
+    const abbr = CANDIDATE_DATA[i]?.abbr || s.substring(0,2).toUpperCase();
+    btn.textContent = abbr + ' · ' + s;
+    btn.addEventListener('click', () => {
+      if (filters[i] === null) { filters[i] = 'D'; btn.className = 'state-pill Dselected'; }
+      else if (filters[i] === 'D') { filters[i] = 'R'; btn.className = 'state-pill Rselected'; }
+      else { filters[i] = null; btn.className = 'state-pill unlocked'; }
+      syncMapState(i);
+      calculate();
+    });
+    container.appendChild(btn);
+    pillEls.push(btn);
+  });
+}
+
+/* =====================================================
+   MAP INTERACTION
+===================================================== */
+function syncMapState(i) {
+  updateMapColors();
+}
+
+/* =====================================================
+   MAP STATE COLORS
+===================================================== */
+const STATE_COLORS = {
+  'no-race':  '#1a2540',
+  'safe-D':   '#1d4ed8',
+  'likely-D': '#3b82f6',
+  'lean-D':   '#60a5fa',
+  'tossup':   '#eab308',
+  'lean-R':   '#f87171',
+  'likely-R': '#ef4444',
+  'safe-R':   '#991b1b',
+};
+
+// FIPS code → abbr (subset used for coloring)
+const FIPS_TO_ABBR = {
+  '01':'AL','02':'AK','04':'AZ','05':'AR','06':'CA','08':'CO','09':'CT',
+  '10':'DE','12':'FL','13':'GA','15':'HI','16':'ID','17':'IL','18':'IN',
+  '19':'IA','20':'KS','21':'KY','22':'LA','23':'ME','24':'MD','25':'MA',
+  '26':'MI','27':'MN','28':'MS','29':'MO','30':'MT','31':'NE','32':'NV',
+  '33':'NH','34':'NJ','35':'NM','36':'NY','37':'NC','38':'ND','39':'OH',
+  '40':'OK','41':'OR','42':'PA','44':'RI','45':'SC','46':'SD','47':'TN',
+  '48':'TX','49':'UT','50':'VT','51':'VA','53':'WA','54':'WV','55':'WI',
+  '56':'WY'
+};
+
+// State ratings (abbr → rating class)
+const STATE_RATINGS = {};
+// Default everything to no-race
+Object.values(FIPS_TO_ABBR).forEach(a => STATE_RATINGS[a] = 'no-race');
+// Override contested states from CANDIDATE_DATA
+CANDIDATE_DATA.forEach(c => { STATE_RATINGS[c.abbr] = c.rating || 'tossup'; });
+
+// Map from abbr → stateIndex in CANDIDATE_DATA
+const ABBR_TO_IDX = {};
+CANDIDATE_DATA.forEach((c, i) => { ABBR_TO_IDX[c.abbr] = i; });
+
+function getStateColor(abbr) {
+  const rating = STATE_RATINGS[abbr] || 'no-race';
+  return STATE_COLORS[rating] || STATE_COLORS['no-race'];
+}
+
+function getStateFillForFilter(abbr) {
+  const idx = ABBR_TO_IDX[abbr];
+  if (idx === undefined) return getStateColor(abbr);
+  const f = filters[idx];
+  if (f === 'D') return '#2563eb';
+  if (f === 'R') return '#dc2626';
+  return getStateColor(abbr);
+}
+
+function getStateStroke(abbr) {
+  const idx = ABBR_TO_IDX[abbr];
+  if (idx === undefined) return { color: '#060d1a', width: 0.5 };
+  const f = filters[idx];
+  if (f === 'D') return { color: '#93c5fd', width: 2 };
+  if (f === 'R') return { color: '#fca5a5', width: 2 };
+  // contested but unlocked
+  return { color: 'rgba(255,255,255,0.5)', width: 1.5 };
+}
+
+let mapPaths = {}; // abbr → SVG path element
+
+function updateMapColors() {
+  Object.entries(mapPaths).forEach(([abbr, el]) => {
+    el.setAttribute('fill', getStateFillForFilter(abbr));
+    const s = getStateStroke(abbr);
+    el.setAttribute('stroke', s.color);
+    el.setAttribute('stroke-width', s.width);
+  });
+}
+
+function syncMapState(i) {
+  const abbr = CANDIDATE_DATA[i]?.abbr;
+  if (!abbr || !mapPaths[abbr]) return;
+  updateMapColors();
+}
+
+async function initMap() {
+  const svg = document.getElementById('senate-map');
+  const tooltip = document.getElementById('mapTooltip');
+  const mapContainer = document.getElementById('map-container');
+
+  // Load D3 and TopoJSON from CDN
+  await Promise.all([
+    new Promise(res => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js';
+      s.onload = res; document.head.appendChild(s);
+    }),
+    new Promise(res => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js';
+      s.onload = res; document.head.appendChild(s);
+    })
+  ]);
+
+  // Fetch the US atlas TopoJSON
+  const us = await fetch('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json').then(r => r.json());
+
+  const projection = d3.geoAlbersUsa().scale(1280).translate([480, 300]);
+  const path = d3.geoPath().projection(projection);
+
+  const svgD3 = d3.select('#senate-map');
+  svgD3.selectAll('*').remove();
+
+  // Draw states
+  const features = topojson.feature(us, us.objects.states).features;
+
+  features.forEach(feature => {
+    const fips = String(feature.id).padStart(2, '0');
+    const abbr = FIPS_TO_ABBR[fips];
+    if (!abbr) return;
+
+    const isContested = ABBR_TO_IDX[abbr] !== undefined;
+    const d = path(feature);
+    if (!d) return;
+
+    const el = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    el.setAttribute('d', d);
+    el.setAttribute('fill', getStateColor(abbr));
+    el.setAttribute('stroke', isContested ? 'rgba(255,255,255,0.5)' : '#060d1a');
+    el.setAttribute('stroke-width', isContested ? '1.5' : '0.5');
+    el.setAttribute('stroke-linejoin', 'round');
+    el.style.transition = 'fill 0.25s, stroke 0.25s, filter 0.25s';
+    if (isContested) el.style.cursor = 'pointer';
+
+    // Hover glow for contested
+    if (isContested) {
+      el.addEventListener('mouseenter', function(e) {
+        if (!filters[ABBR_TO_IDX[abbr]]) {
+          this.setAttribute('stroke', 'rgba(255,255,255,0.9)');
+          this.setAttribute('stroke-width', '2.5');
+          this.style.filter = 'brightness(1.2)';
+        }
+        const c = CANDIDATE_DATA[ABBR_TO_IDX[abbr]];
+        const margin = Math.abs(c.dPct - c.rPct);
+        const leader = c.dPct > c.rPct ? 'D' : 'R';
+        tooltip.innerHTML = `
+          <div style="font-family:'IBM Plex Mono',monospace;min-width:180px;">
+            <div style="font-weight:700;font-size:13px;margin-bottom:6px;">${c.state}</div>
+            <div style="color:#93c5fd;margin-bottom:2px;">${c.dCandidate}: <b>${c.dPct}%</b></div>
+            <div style="color:#fca5a5;margin-bottom:6px;">${c.rCandidate}: <b>${c.rPct}%</b></div>
+            <div style="color:#64748b;font-size:10px;">+${margin} ${leader} · ${c.pollDate}</div>
+          </div>`;
+        tooltip.style.display = 'block';
+      });
+      el.addEventListener('mousemove', function(e) {
+        const rect = mapContainer.getBoundingClientRect();
+        tooltip.style.left = Math.min(e.clientX - rect.left + 14, rect.width - 210) + 'px';
+        tooltip.style.top = Math.max(e.clientY - rect.top - 10, 0) + 'px';
+      });
+      el.addEventListener('mouseleave', function() {
+        updateMapColors(); // resets stroke
+        this.style.filter = '';
+        tooltip.style.display = 'none';
+      });
+      el.addEventListener('click', function() {
+        const i = ABBR_TO_IDX[abbr];
+        if (filters[i] === null) { filters[i] = 'D'; }
+        else if (filters[i] === 'D') { filters[i] = 'R'; }
+        else { filters[i] = null; }
+        pillEls[i].className = 'state-pill ' + (filters[i] === null ? 'unlocked' : filters[i] === 'D' ? 'Dselected' : 'Rselected');
+        updateMapColors();
+        calculate();
+      });
+    } else {
+      // Show state name on hover for non-contested
+      el.addEventListener('mouseenter', function(e) {
+        this.style.filter = 'brightness(1.1)';
+        tooltip.innerHTML = `<div style="font-family:'IBM Plex Mono',monospace;font-size:11px;"><b>${abbr}</b> — Not Competitive or no 2026 race</div>`;
+        tooltip.style.display = 'block';
+      });
+      el.addEventListener('mousemove', function(e) {
+        const rect = mapContainer.getBoundingClientRect();
+        tooltip.style.left = Math.min(e.clientX - rect.left + 14, rect.width - 170) + 'px';
+        tooltip.style.top = Math.max(e.clientY - rect.top - 10, 0) + 'px';
+      });
+      el.addEventListener('mouseleave', function() {
+        this.style.filter = '';
+        tooltip.style.display = 'none';
+      });
+    }
+
+    svg.appendChild(el);
+    mapPaths[abbr] = el;
+  });
+
+  // Draw state borders (mesh)
+  const mesh = topojson.mesh(us, us.objects.states, (a, b) => a !== b);
+  const borderEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  borderEl.setAttribute('d', path(mesh));
+  borderEl.setAttribute('fill', 'none');
+  borderEl.setAttribute('stroke', 'rgba(6,13,26,0.8)');
+  borderEl.setAttribute('stroke-width', '0.8');
+  borderEl.setAttribute('pointer-events', 'none');
+  svg.appendChild(borderEl);
+
+  // State abbreviation labels for contested states
+  features.forEach(feature => {
+    const fips = String(feature.id).padStart(2, '0');
+    const abbr = FIPS_TO_ABBR[fips];
+    if (!abbr || ABBR_TO_IDX[abbr] === undefined) return;
+
+    const centroid = path.centroid(feature);
+    if (!centroid || isNaN(centroid[0])) return;
+
+    const c = CANDIDATE_DATA[ABBR_TO_IDX[abbr]];
+    const rating = c?.rating || 'tossup';
+    const isDark = ['safe-D','likely-D','lean-D','tossup','lean-R','likely-R','safe-R'].includes(rating);
+    const textColor = (rating === 'tossup') ? '#000' : '#fff';
+
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', centroid[0]);
+    text.setAttribute('y', centroid[1] + 4);
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('fill', textColor);
+    text.setAttribute('font-size', '9');
+    text.setAttribute('font-weight', '700');
+    text.setAttribute('font-family', "'IBM Plex Mono', monospace");
+    text.setAttribute('pointer-events', 'none');
+    text.textContent = abbr;
+    svg.appendChild(text);
+  });
+}
+
+/* =====================================================
+   OUTCOME FILTER
+===================================================== */
+function setOutcomeFilter(f) {
+  if (outcomeFilter === f) {
     outcomeFilter = null;
-    this.classList.remove('active');
   } else {
-    outcomeFilter = 'D';
-    this.classList.add('active');
-    document.getElementById('gopPaths').classList.remove('active');
-    document.getElementById('tiePaths').classList.remove('active');
+    outcomeFilter = f;
   }
+  ['Dem','Tie','Gop'].forEach(k => {
+    document.getElementById('filter' + k).className = 'state-pill unlocked';
+  });
+  if (outcomeFilter === 'D') document.getElementById('filterDem').className = 'state-pill Dselected';
+  if (outcomeFilter === 'tie') document.getElementById('filterTie').className = 'state-pill unlocked'; // keep yellow
+  if (outcomeFilter === 'R') document.getElementById('filterGop').className = 'state-pill Rselected';
   calculate();
-});
-
-document.getElementById('gopPaths').addEventListener('click', function() {
-  if(outcomeFilter === 'R') {
-    outcomeFilter = null;
-    this.classList.remove('active');
-  } else {
-    outcomeFilter = 'R';
-    this.classList.add('active');
-    document.getElementById('demPaths').classList.remove('active');
-    document.getElementById('tiePaths').classList.remove('active');
-  }
+}
+// fix tie filter styling
+function setOutcomeFilter(f) {
+  outcomeFilter = outcomeFilter === f ? null : f;
+  document.getElementById('filterDem').className = 'state-pill ' + (outcomeFilter==='D' ? 'Dselected':'unlocked');
+  document.getElementById('filterTie').className = 'state-pill unlocked';
+  document.getElementById('filterGop').className = 'state-pill ' + (outcomeFilter==='R' ? 'Rselected':'unlocked');
+  if(outcomeFilter==='tie') document.getElementById('filterTie').style.background = 'rgba(234,179,8,0.15)';
+  else document.getElementById('filterTie').style.background = '';
   calculate();
-});
+}
 
-document.getElementById('tiePaths').addEventListener('click', function() {
-  if(outcomeFilter === 'tie') {
-    outcomeFilter = null;
-    this.classList.remove('active');
-  } else {
-    outcomeFilter = 'tie';
-    this.classList.add('active');
-    document.getElementById('demPaths').classList.remove('active');
-    document.getElementById('gopPaths').classList.remove('active');
-  }
-  calculate();
-});
-
-// ---------- CALCULATION ----------
-function calculate(){
+/* =====================================================
+   CORE CALCULATION
+===================================================== */
+function calculate() {
   const body = document.getElementById('results-body');
-  body.innerHTML='';
+  body.innerHTML = '';
 
-  let demPaths=0, gopPaths=0, tiePaths=0;
-  let displayedDemPaths=0, displayedGopPaths=0, displayedTiePaths=0;
-
-  const tossUps = [];
-  filters.forEach((f,i)=>{ if(f===null) tossUps.push(i); });
-
-  // Generate all 128 scenarios
+  // ── Pass 1: compute ALL scenario weights to find total & max ──────────────
   const allScenarios = [];
-  for(let mask=0; mask<128; mask++){
-    let d=baseD, r=baseR;
-    const row = Array(states.length).fill('');
-
-    states.forEach((state, i) => {
-      const val = (mask & (1<<i)) ? 'D' : 'R';
-      row[i] = val;
-      if(val==='D') d++; else r++;
+  for (let mask = 0; mask < 256; mask++) {
+    let d = baseD, r = baseR;
+    const row = [];
+    states.forEach((s, i) => {
+      const val = (mask & (1 << i)) ? 'D' : 'R';
+      row.push(val);
+      if (val === 'D') d++; else r++;
     });
+    let matchesFilters = true;
+    filters.forEach((f, i) => { if (f !== null && row[i] !== f) matchesFilters = false; });
 
-    let text='', cls='';
-    if(d>=51){ text='Democratic Majority'; cls='D'; }
-    else if(r>=51){ text='Republican Majority'; cls='R'; }
-    else { text='Tie'; cls='tie'; }
-
-    allScenarios.push({
-      scenarioId: mask + 1,
-      row: row,
-      dSeats: d,
-      rSeats: r,
-      outcome: text,
-      outcomeClass: cls
-    });
+    const outcome = d >= 51 ? 'D' : r >= 51 ? 'R' : 'tie';
+    const weight = scenarioProb(row);
+    allScenarios.push({ mask, row, d, r, outcome, weight, matchesFilters });
   }
 
-  // Now filter scenarios based on user selections
-  allScenarios.forEach(scenario => {
-    // Check if scenario matches state filters
-    let matchesFilters = true;
-    filters.forEach((f,i)=>{
-      if(f !== null && scenario.row[i] !== f) {
-        matchesFilters = false;
-      }
-    });
+  // Total weight across filter-matching scenarios only (for normalisation)
+  const filteredTotal = allScenarios
+    .filter(s => s.matchesFilters)
+    .reduce((sum, s) => sum + s.weight, 0);
 
-    if(!matchesFilters) return;
+  // ── Pass 2: accumulate path counts & poll-weighted probs ──────────────────
+  let demPaths=0, gopPaths=0, tiePaths=0;
+  let demW=0, gopW=0, tieW=0;
 
-    // Count all paths
-    if(scenario.outcomeClass==='D') demPaths++;
-    else if(scenario.outcomeClass==='R') gopPaths++;
-    else tiePaths++;
+  allScenarios.filter(s => s.matchesFilters).forEach(s => {
+    if (s.outcome === 'D') { demPaths++; demW += s.weight; }
+    else if (s.outcome === 'R') { gopPaths++; gopW += s.weight; }
+    else                        { tiePaths++; tieW += s.weight; }
+  });
 
-    // Apply outcome filter
-    if(outcomeFilter && scenario.outcomeClass !== outcomeFilter) return;
+  const totalPaths = demPaths + gopPaths + tiePaths;
 
-    // Count displayed paths
-    if(scenario.outcomeClass==='D') displayedDemPaths++;
-    else if(scenario.outcomeClass==='R') displayedGopPaths++;
-    else displayedTiePaths++;
+  // ── Pass 3: render table ──────────────────────────────────────────────────
+  let displayedRows = 0;
 
-    // Create table row
-    const tr=document.createElement('tr');
+  // Sort: highest-weight scenarios first so "most likely" appear at top
+  const sorted = [...allScenarios]
+    .filter(s => s.matchesFilters)
+    .filter(s => !outcomeFilter || s.outcome === outcomeFilter)
+    .sort((a, b) => b.weight - a.weight);
 
-    // Add scenario number first
-    const tdScenario=document.createElement('td');
-    tdScenario.textContent=scenario.scenarioId;
-    tdScenario.style.fontWeight='700';
-    tr.appendChild(tdScenario);
+  sorted.forEach(s => {
+    displayedRows++;
+    const sharePct = filteredTotal > 0 ? s.weight / filteredTotal * 100 : 0;
+    const isEliminated = sharePct < ELIM_THRESHOLD * 100;
 
-    scenario.row.forEach(v=>{
-      const td=document.createElement('td');
-      td.className=v;
-      td.textContent=v;
+    const tr = document.createElement('tr');
+    if (isEliminated) {
+      tr.style.opacity = '0.28';
+      tr.style.background = 'rgba(0,0,0,0.2)';
+      tr.title = 'Forecast-eliminated: <0.5% poll probability';
+    }
+
+    // Rank #
+    const tdN = document.createElement('td');
+    tdN.className = 'num';
+    tdN.textContent = displayedRows;
+    tr.appendChild(tdN);
+
+    // State columns
+    s.row.forEach(v => {
+      const td = document.createElement('td');
+      td.className = v;
+      td.textContent = v;
       tr.appendChild(td);
     });
 
-    const tdD=document.createElement('td');
-    tdD.textContent=scenario.dSeats;
-    tdD.className='D';
+    // D / R seat counts
+    const tdD = document.createElement('td');
+    tdD.textContent = s.d; tdD.className = 'D';
     tr.appendChild(tdD);
 
-    const tdR=document.createElement('td');
-    tdR.textContent=scenario.rSeats;
-    tdR.className='R';
+    const tdR = document.createElement('td');
+    tdR.textContent = s.r; tdR.className = 'R';
     tr.appendChild(tdR);
 
-    const td=document.createElement('td');
-    td.className='status ' + scenario.outcomeClass;
-    td.textContent=scenario.outcome;
-    tr.appendChild(td);
+    // Outcome
+    const tdO = document.createElement('td');
+    const labels = { D: 'D Majority', R: 'R Majority', tie: 'Tie' };
+    tdO.textContent = labels[s.outcome];
+    tdO.className = 'status-' + s.outcome;
+    tr.appendChild(tdO);
+
+    // Forecast probability share column
+    const tdP = document.createElement('td');
+    tdP.className = 'fcst-prob';
+    if (isEliminated) {
+      tdP.textContent = '✕';
+      tdP.style.color = 'var(--muted)';
+      tdP.title = 'Eliminated by forecast';
+    } else {
+      tdP.textContent = sharePct >= 1 ? sharePct.toFixed(1) + '%' : '<1%';
+      tdP.style.color = s.outcome === 'D' ? 'var(--d-light)' : s.outcome === 'R' ? 'var(--r-light)' : 'var(--y)';
+      // Mini heat bar inside cell
+      const bar = document.createElement('div');
+      bar.style.cssText = `height:3px;border-radius:2px;margin-top:2px;background:${s.outcome==='D'?'var(--d)':s.outcome==='R'?'var(--r)':'var(--y)'};width:${Math.min(100, sharePct * 4)}%;opacity:0.6;`;
+      tdP.appendChild(bar);
+    }
+    tr.appendChild(tdP);
 
     body.appendChild(tr);
   });
 
-  const total = demPaths+gopPaths+tiePaths;
-  document.getElementById('demProb').textContent=((demPaths/total)*100).toFixed(1)+'%';
-  document.getElementById('gopProb').textContent=((gopPaths/total)*100).toFixed(1)+'%';
-  document.getElementById('tieProb').textContent=((tiePaths/total)*100).toFixed(1)+'%';
+  // ── Update top-level probability displays ─────────────────────────────────
+  const rawDP = totalPaths > 0 ? (demPaths/totalPaths*100).toFixed(1) : '—';
+  const rawRP = totalPaths > 0 ? (gopPaths/totalPaths*100).toFixed(1) : '—';
+  const rawTP = totalPaths > 0 ? (tiePaths/totalPaths*100).toFixed(1) : '—';
+  const combDP = filteredTotal > 0 ? (demW/filteredTotal*100).toFixed(1) : '—';
+  const combRP = filteredTotal > 0 ? (gopW/filteredTotal*100).toFixed(1) : '—';
+  const combTP = filteredTotal > 0 ? (tieW/filteredTotal*100).toFixed(1) : '—';
 
-  document.getElementById('demPaths').textContent='Paths to Victory: '+displayedDemPaths;
-  document.getElementById('gopPaths').textContent='Paths to Victory: '+displayedGopPaths;
-  document.getElementById('tiePaths').textContent='Paths to Tie: '+displayedTiePaths;
+  document.getElementById('demProb').textContent = rawDP + '%';
+  document.getElementById('gopProb').textContent = rawRP + '%';
+  document.getElementById('tieProb').textContent = rawTP + '%';
+  document.getElementById('demCombined').textContent = combDP + '%';
+  document.getElementById('gopCombined').textContent = combRP + '%';
+  document.getElementById('tieCombined').textContent = combTP + '%';
 
-  let dSeats=baseD, rSeats=baseR;
-  filters.forEach(f=>{ if(f==='D') dSeats++; if(f==='R') rSeats++; });
-  document.getElementById('demSeats').textContent='D Seats: '+dSeats;
-  document.getElementById('gopSeats').textContent='R Seats: '+rSeats;
+  document.getElementById('demPaths').textContent = `▶ ${demPaths} winning path${demPaths===1?'':'s'}`;
+  document.getElementById('gopPaths').textContent = `▶ ${gopPaths} winning path${gopPaths===1?'':'s'}`;
+  document.getElementById('tiePaths').textContent = `▶ ${tiePaths} tie path${tiePaths===1?'':'s'}`;
+  document.getElementById('scenarioCount').textContent = displayedRows;
+
+  let dSeats = baseD, rSeats = baseR;
+  filters.forEach(f => { if (f==='D') dSeats++; if (f==='R') rSeats++; });
+  document.getElementById('demSeats').textContent = dSeats + ' seats';
+  document.getElementById('gopSeats').textContent = rSeats + ' seats';
+
+  // Raw bar
+  const dp = parseFloat(rawDP)||0, rp = parseFloat(rawRP)||0, tp = parseFloat(rawTP)||0;
+  document.getElementById('barD').style.width = dp + '%';
+  document.getElementById('barD').textContent = dp > 6 ? 'D' : '';
+  document.getElementById('barT').style.width = tp + '%';
+  document.getElementById('barR').style.width = rp + '%';
+  document.getElementById('barR').textContent = rp > 6 ? 'R' : '';
+  document.getElementById('barLabelD').textContent = `D ${dp}%`;
+  document.getElementById('barLabelR').textContent = `R ${rp}%`;
+
+  // Forecast bar
+  const cdp = parseFloat(combDP)||0, crp = parseFloat(combRP)||0, ctp = parseFloat(combTP)||0;
+  document.getElementById('barFD').style.width = cdp + '%';
+  document.getElementById('barFD').textContent = cdp > 6 ? 'D' : '';
+  document.getElementById('barFT').style.width = ctp + '%';
+  document.getElementById('barFR').style.width = crp + '%';
+  document.getElementById('barFR').textContent = crp > 6 ? 'R' : '';
+  document.getElementById('barFLabelD').textContent = `D ${combDP}%`;
+  document.getElementById('barFLabelR').textContent = `R ${combRP}%`;
+
+  // Delta
+  function makeDelta(rawVal, combVal) {
+    const diff = parseFloat(combVal) - parseFloat(rawVal);
+    if (isNaN(diff)) return { text: '', cls: 'delta-flat', arrow: '→', arrowColor: 'var(--muted)' };
+    if (Math.abs(diff) < 0.1) return { text: '± 0.0%', cls: 'delta-flat', arrow: '→', arrowColor: 'var(--muted)' };
+    if (diff > 0) return { text: `▲ +${diff.toFixed(1)}%`, cls: 'delta-up', arrow: '↗', arrowColor: '#4ade80' };
+    return { text: `▼ ${diff.toFixed(1)}%`, cls: 'delta-down', arrow: '↘', arrowColor: '#f87171' };
+  }
+
+  const dDelta = makeDelta(rawDP, combDP);
+  const rDelta = makeDelta(rawRP, combRP);
+
+  document.getElementById('demDeltaRow').className = 'delta-row ' + dDelta.cls;
+  document.getElementById('demDeltaRow').textContent = dDelta.text;
+  document.getElementById('gopDeltaRow').className = 'delta-row ' + rDelta.cls;
+  document.getElementById('gopDeltaRow').textContent = rDelta.text;
+  document.getElementById('arrowIconD').textContent = dDelta.arrow;
+  document.getElementById('arrowIconD').style.color = dDelta.arrowColor;
+  document.getElementById('arrowIconR').textContent = rDelta.arrow;
+  document.getElementById('arrowIconR').style.color = rDelta.arrowColor;
+  document.getElementById('arrowIconT').textContent = '→';
+  document.getElementById('arrowIconT').style.color = 'var(--muted)';
+
+  applyDisplayMode();
 }
 
+/* =====================================================
+   RESET
+===================================================== */
+document.getElementById('resetBtn').addEventListener('click', () => {
+  filters = Array(states.length).fill(null);
+  outcomeFilter = null;
+  pillEls.forEach(p => p.className = 'state-pill unlocked');
+  states.forEach((s, i) => syncMapState(i));
+  updateMapColors();
+  ['filterDem','filterTie','filterGop'].forEach(id => {
+    document.getElementById(id).className = 'state-pill unlocked';
+    document.getElementById(id).style.background = '';
+  });
+  calculate();
+});
+
+/* =====================================================
+   INIT
+===================================================== */
+buildTicker();
+buildCandidateCards();
+buildPills();
+populateEnvSelect();
+initMap();
 calculate();
 </script>
 </body>
